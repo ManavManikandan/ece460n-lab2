@@ -407,6 +407,8 @@ int readWord(int PC) {
   return (MEMORY[PC/2][1] << 8) + MEMORY[PC/2][0];
 }
 
+int bits(int instr, int start, int end) {}
+
 void process_instruction(){
   /*  function: process_instruction
    *  
@@ -424,9 +426,13 @@ void process_instruction(){
   // CURRENT_LATCHES.PC = Low16bits(CURRENT_LATCHES.PC + 2);
   printf("%01x\n", opcode); 
 
-  switch opcode:
-    case (0001):
-      bits 11:7
-    
+  switch (opcode) {
+    case (0x1):
+      if (bits(instr, 7, 7)) {
 
+      }
+      dr = 
+      sr1 = 
+    break;
+  }
 } 
