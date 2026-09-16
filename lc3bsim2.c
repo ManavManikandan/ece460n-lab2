@@ -323,7 +323,7 @@ void load_program(char *program_filename) {
     }
 
     /* Write the word to memory array. */
-    MEMORY[program_base + ii][0] = word & 0x00FF;           
+    MEMORY[program_base + ii][0] = word & 0x00FF;
     MEMORY[program_base + ii][1] = (word >> 8) & 0x00FF;
     ii++;
   }
@@ -343,14 +343,14 @@ void load_program(char *program_filename) {
 /************************************************************/
 void initialize(char *files[], int num_prog_files) { 
   int i;
-
+ 
   init_memory();
   for ( i = 0; i < num_prog_files; i++ ) {
     load_program(files[i]);
   }
   CURRENT_LATCHES.Z = 1;  
   NEXT_LATCHES = CURRENT_LATCHES;
-    
+ 
   RUN_BIT = TRUE;
 }
 
@@ -401,7 +401,11 @@ int main(int argc, char *argv[]) {
 
 /***************************************************************/
 
+int readWord(int PC) {
+  // gets instruction from mem @ pc value
 
+  return (MEMORY[PC/2][1] << 8) + MEMORY[PC/2][0];
+}
 
 void process_instruction(){
   /*  function: process_instruction
@@ -413,4 +417,16 @@ void process_instruction(){
    *       -Update NEXT_LATCHES
    */     
 
-}
+  // bits[15:12]
+
+  int instr = readWord(CURRENT_LATCHES.PC);
+  int opcode = (instr & 0xF000) >> 12;
+  // CURRENT_LATCHES.PC = Low16bits(CURRENT_LATCHES.PC + 2);
+  printf("%01x\n", opcode); 
+
+  switch opcode:
+    case (0001):
+      bits 11:7
+    
+
+} 
