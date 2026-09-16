@@ -407,7 +407,11 @@ int readWord(int PC) {
   return (MEMORY[PC/2][1] << 8) + MEMORY[PC/2][0];
 }
 
-int bits(int instr, int start, int end) {}
+int bits(int instr, int start, int end) {
+  int width = start - end + 1;      // how many bits we're grabbing
+  int mask = (1 << width) - 1;      // e.g. width=4 -> 0b1111
+  return (instr >> end) & mask;     // shift the field down to bit 0, then mask it off
+}
 
 void process_instruction(){
   /*  function: process_instruction
