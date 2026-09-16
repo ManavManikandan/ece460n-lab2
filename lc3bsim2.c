@@ -413,6 +413,24 @@ int bits(int instr, int start, int end) {
   return (instr >> end) & mask;     // shift the field down to bit 0, then mask it off
 }
 
+int SEXT(int val, int numBits) {
+  // if the sign bit (top bit of the field) is set, extend it with 1s
+  if (val & (1 << (numBits - 1))) {
+    val |= (0xFFFF << numBits);   // or ~0 << numBits for full int width
+  }
+  return val;
+}
+
+void setCC(int val) {
+  if (val < 0) {
+    NEXT_LATCHES.N = 1;
+  } else if (val == 0) {
+    NEXT_LATCHES.Z = 1;
+  } else {
+    NEXT_LATCHES.P = 1;
+  }
+}
+
 void process_instruction(){
   /*  function: process_instruction
    *  
@@ -428,18 +446,26 @@ void process_instruction(){
   int instr = readWord(CURRENT_LATCHES.PC);
   int opcode = (instr & 0xF000) >> 12;
   // CURRENT_LATCHES.PC = Low16bits(CURRENT_LATCHES.PC + 2);
-  printf("%01x\n", opcode); 
 
   switch (opcode) {
-    case (0x1):
+    case (0x1): {
       int dr = bits(instr, 11, 9);
-      int sr1 = bits(instr, )
-        if (bits(instr, 7, 7)) {
+      int sr1 = bits(instr, 8, 6);
+        if (bits(instr, 5, 5)) {
           // imm5
-        } else {
-          int sr1 = 
-        }
-    break;
-  }
-} 
+          int op2 = SEXT(bits(instr, 4, 0), 5);
+          NEXT_LATCHES.REGS[dr] = Low16bits(CURRENT_LATCHES.REGS[sr1] + op2);
 
+        } else {
+          int sr2 = bits(instr, 2, 0);
+          NEXT_LATCHES.REGS[dr] = Low16bits(CURRENT_LATCHES.REGS[sr1] + CURRENT_LATCHES.REGS[sr2]);
+        }
+        setCC(NEXT_LATCHES.REGS[dr]);
+
+      break;
+    }
+  }
+
+  NEXT_LATCHES.PC = Low16bits(CURRENT_LATCHES.PC + 2);
+  return;
+}
