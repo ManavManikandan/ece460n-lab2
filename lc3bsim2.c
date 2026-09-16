@@ -432,11 +432,14 @@ void process_instruction(){
 
   switch (opcode) {
     case (0x1):
-      if (bits(instr, 7, 7)) {
-
-      }
-      dr = 
-      sr1 = 
+      int dr = bits(instr, 11, 9);
+      int sr1 = bits(instr, )
+        if (bits(instr, 7, 7)) {
+          // imm5
+        } else {
+          int sr1 = 
+        }
     break;
   }
 } 
+
