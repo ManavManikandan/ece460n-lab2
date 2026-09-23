@@ -1,8 +1,8 @@
 /*
-    Name 1: Full name of the first partner 
-    Name 2: Full name of the second partner
-    UTEID 1: UT EID of the first partner
-    UTEID 2: UT EID of the second partner
+    Name 1: Manav Manikandan 
+    Name 2: Vraj Thakkar
+    UTEID 1: mvm833
+    UTEID 2: vst362
 */
 
 /***************************************************************/
@@ -422,10 +422,15 @@ int SEXT(int val, int numBits) {
 }
 
 void setCC(int val) {
-  if (val < 0) {
-    NEXT_LATCHES.N = 1;
-  } else if (val == 0) {
+  val = Low16bits(val);  // make sure we're only looking at 16 bits
+  NEXT_LATCHES.N = 0;
+  NEXT_LATCHES.Z = 0;
+  NEXT_LATCHES.P = 0;
+
+  if (val == 0) {
     NEXT_LATCHES.Z = 1;
+  } else if (val & 0x8000) {   // bit 15 set -> negative
+    NEXT_LATCHES.N = 1;
   } else {
     NEXT_LATCHES.P = 1;
   }
@@ -441,14 +446,13 @@ void process_instruction(){
    *       -Update NEXT_LATCHES
    */     
 
-  // bits[15:12]
-
   int instr = readWord(CURRENT_LATCHES.PC);
   int opcode = (instr & 0xF000) >> 12;
-  // CURRENT_LATCHES.PC = Low16bits(CURRENT_LATCHES.PC + 2);
+
+  NEXT_LATCHES.PC = Low16bits(CURRENT_LATCHES.PC + 2);
 
   switch (opcode) {
-    case (0x1): {
+    case (0x1): {     // ADD
       int dr = bits(instr, 11, 9);
       int sr1 = bits(instr, 8, 6);
         if (bits(instr, 5, 5)) {
@@ -464,8 +468,191 @@ void process_instruction(){
 
       break;
     }
+
+    case (0x5): {     // AND
+      int dr = bits(instr, 11, 9);
+      int sr1 = bits(instr, 8, 6);
+        if (bits(instr, 5, 5)) {
+          // imm5
+          int op2 = SEXT(bits(instr, 4, 0), 5);
+          NEXT_LATCHES.REGS[dr] = Low16bits(CURRENT_LATCHES.REGS[sr1] & op2);
+
+        } else {
+          int sr2 = bits(instr, 2, 0);
+          NEXT_LATCHES.REGS[dr] = Low16bits(CURRENT_LATCHES.REGS[sr1] & CURRENT_LATCHES.REGS[sr2]);
+        }
+        setCC(NEXT_LATCHES.REGS[dr]);
+
+      break;
+    }
+    
+    case (0x9): {     // XOR
+      int dr = bits(instr, 11, 9);
+      int sr1 = bits(instr, 8, 6);
+        if (bits(instr, 5, 5)) {
+          // imm5
+          int op2 = SEXT(bits(instr, 4, 0), 5);
+          NEXT_LATCHES.REGS[dr] = Low16bits(CURRENT_LATCHES.REGS[sr1] ^ op2);
+
+        } else {
+          int sr2 = bits(instr, 2, 0);
+          NEXT_LATCHES.REGS[dr] = Low16bits(CURRENT_LATCHES.REGS[sr1] ^ CURRENT_LATCHES.REGS[sr2]);
+        }
+        setCC(NEXT_LATCHES.REGS[dr]);
+
+      break;
+    }
+
+    case (0x0): { // BR
+      int n = bits(instr, 11, 11);
+      int z = bits(instr, 10, 10);
+      int p = bits(instr, 9, 9);
+
+      if ((n && CURRENT_LATCHES.N) || (z && CURRENT_LATCHES.Z) || (p && CURRENT_LATCHES.P)) {
+        NEXT_LATCHES.PC = Low16bits(NEXT_LATCHES.PC + SEXT(bits(instr, 8, 0), 9) * 2);
+      }
+
+      break;
+    }
+
+    case (0xC): { // JMP
+      int br = bits(instr, 8, 6);
+
+      NEXT_LATCHES.PC = Low16bits(CURRENT_LATCHES.REGS[br]);
+
+      break;
+    }
+
+    case (0x4): { // JSR, JSRR
+      int temp = NEXT_LATCHES.PC; // save PC so R7 has the correct PC val
+
+      if (bits(instr, 11, 11)) {
+        NEXT_LATCHES.PC = Low16bits(NEXT_LATCHES.PC + SEXT(bits(instr, 10, 0), 11) * 2);
+      } else {
+        int br = bits(instr, 8, 6);
+
+        NEXT_LATCHES.PC = Low16bits(CURRENT_LATCHES.REGS[br]);
+      }
+
+      NEXT_LATCHES.REGS[7] = temp;
+
+      break;
+    }
+
+
+    case (0x2):
+    { // LDB
+      int dr = bits(instr, 11, 9);
+      int baseR = bits(instr, 8, 6);
+      int boffset6 = SEXT(bits(instr, 5, 0), 6);
+      int addr = Low16bits(CURRENT_LATCHES.REGS[baseR] + boffset6);
+
+      int byteVal = MEMORY[addr / 2][addr % 2]; // pick low or high byte
+      NEXT_LATCHES.REGS[dr] = Low16bits(SEXT(byteVal, 8));
+
+      setCC(NEXT_LATCHES.REGS[dr]);
+      break;
+    }
+
+    case (0x6):
+    { // LDW
+      int dr = bits(instr, 11, 9);
+      int baseR = bits(instr, 8, 6);
+      int offset6 = SEXT(bits(instr, 5, 0), 6);
+
+      int addr = Low16bits(CURRENT_LATCHES.REGS[baseR] + (offset6 << 1));
+
+      int wordVal = readWord(addr);
+      NEXT_LATCHES.REGS[dr] = Low16bits(wordVal);
+
+      setCC(NEXT_LATCHES.REGS[dr]);
+      break;
+    }
+    
+    case (0xE):
+    { // LEA
+      int dr = bits(instr, 11, 9);
+      int PCoffset9 = SEXT(bits(instr, 8, 0), 9);
+
+      int addr = Low16bits(CURRENT_LATCHES.PC + 2 + (PCoffset9 << 1));
+
+      NEXT_LATCHES.REGS[dr] = addr;
+
+      break;
+    }
+
+    case (0xD):
+    { // LSHF, RSHFL, RSHFA
+      int dr = bits(instr, 11, 9);
+      int sr = bits(instr, 8, 6);
+      int amount4 = bits(instr, 3, 0);
+      int subop = bits(instr, 5, 4);
+
+      if (subop == 0x0)
+      {
+        // LSHF
+        NEXT_LATCHES.REGS[dr] = Low16bits(CURRENT_LATCHES.REGS[sr] << amount4);
+      }
+      else if (subop == 0x1)
+      {
+        // RSHFL (logical right shift)
+        int val = CURRENT_LATCHES.REGS[sr] & 0xFFFF; // treat as unsigned 16-bit
+        NEXT_LATCHES.REGS[dr] = Low16bits(val >> amount4);
+      }
+      else if (subop == 0x3)
+      {
+        // RSHFA (arithmetic right shift)
+        int val = SEXT(CURRENT_LATCHES.REGS[sr] & 0xFFFF, 16); // sign-extend to full int width
+        NEXT_LATCHES.REGS[dr] = Low16bits(val >> amount4);
+      }
+
+      setCC(NEXT_LATCHES.REGS[dr]);
+      break;
+    }
+
+    case (0x3):
+    { // STB
+      int sr = bits(instr, 11, 9);
+      int baseR = bits(instr, 8, 6);
+      int boffset6 = SEXT(bits(instr, 5, 0), 6);
+
+      int addr = Low16bits(CURRENT_LATCHES.REGS[baseR] + boffset6);
+
+      int byteVal = CURRENT_LATCHES.REGS[sr] & 0xFF; // only the low 8 bits get stored
+
+      MEMORY[addr / 2][addr % 2] = byteVal;
+
+      break;
+    }
+
+    case (0x7):
+    { // STW
+      int sr = bits(instr, 11, 9);
+      int baseR = bits(instr, 8, 6);
+      int offset6 = SEXT(bits(instr, 5, 0), 6);
+
+      int addr = Low16bits(CURRENT_LATCHES.REGS[baseR] + (offset6 << 1));
+
+      int wordVal = Low16bits(CURRENT_LATCHES.REGS[sr]);
+
+      MEMORY[addr / 2][0] = wordVal & 0xFF;        // low byte
+      MEMORY[addr / 2][1] = (wordVal >> 8) & 0xFF; // high byte
+
+      break;
+    }
+
+    case (0xF):
+    { // TRAP
+      int trapvect8 = bits(instr, 7, 0);
+
+      NEXT_LATCHES.REGS[7] = Low16bits(CURRENT_LATCHES.PC + 2);
+
+      int vectorAddr = Low16bits(trapvect8 << 1);
+      NEXT_LATCHES.PC = Low16bits(readWord(vectorAddr));
+
+      break;
+    }
   }
 
-  NEXT_LATCHES.PC = Low16bits(CURRENT_LATCHES.PC + 2);
-  return;
+    return;
 }

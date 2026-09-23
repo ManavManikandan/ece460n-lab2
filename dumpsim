@@ -1,64 +1,16 @@
 
 Current register/bus values :
 -------------------------------------
-Instruction Count : 1
-PC                : 0x3002
-CCs: N = 0  Z = 1  P = 1
+Instruction Count : 13
+PC                : 0x0000
+CCs: N = 0  Z = 0  P = 1
 Registers:
 0: 0x0000
-1: 0x0005
-2: 0x0000
-3: 0x0000
-4: 0x0000
+1: 0x3006
+2: 0x0001
+3: 0x0002
+4: 0x3014
 5: 0x0000
-6: 0x0000
-7: 0x0000
-
-
-Current register/bus values :
--------------------------------------
-Instruction Count : 2
-PC                : 0x3004
-CCs: N = 0  Z = 1  P = 1
-Registers:
-0: 0x0000
-1: 0x0005
-2: 0x0002
-3: 0x0000
-4: 0x0000
-5: 0x0000
-6: 0x0000
-7: 0x0000
-
-
-Current register/bus values :
--------------------------------------
-Instruction Count : 3
-PC                : 0x3006
-CCs: N = 0  Z = 1  P = 1
-Registers:
-0: 0x0000
-1: 0x0005
-2: 0x0002
-3: 0x0000
-4: 0x0000
-5: 0x0000
-6: 0x0000
-7: 0x0000
-
-
-Current register/bus values :
--------------------------------------
-Instruction Count : 4
-PC                : 0x3008
-CCs: N = 0  Z = 1  P = 1
-Registers:
-0: 0x0000
-1: 0x0005
-2: 0x0002
-3: 0x0000
-4: 0x0000
-5: 0x0000
-6: 0x0000
-7: 0x0000
+6: 0x0002
+7: 0x3014
 
